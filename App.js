@@ -1,31 +1,36 @@
 import React, { Children, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Button, Keyboard, FlatList, ActivityIndicator } from 'react-native';
 import firebase from './src/firebaseConnection';
+
+import Listagem from './src/Listagem';
 
 export default function App() {
   const [nome, setNome] = useState('')
   const [cargo, setCargo] = useState('')
+  const [usuarios, setUsuarios] = useState([])
+  const [loading, setLoading] = useState(true)
 
 
   useEffect(() => {
 
     async function dados() {
-      //Criar um nó
-      //await firebase.database().ref('tipo').set('Cliente')
 
-      //Remover nó
-      //await firebase.database().ref('tipo').remove()
+      await firebase.database().ref('usuarios').on('value',
+        (snapshot) => {
+          setUsuarios([])
 
-      //Adicionando child
-      //await firebase.database().ref('usuarios').child(3).set({
-      //  nome:'José',
-      //  cargo:'Programador'
-      //})
+          snapshot.forEach((childItem) => {
+            let data = {
+              key: childItem.key,
+              nome: childItem.val().nome,
+              cargo: childItem.val().cargo,
+            };
 
-      //Alterando chiald
-      //await firebase.database().ref('usuarios').child(3).update({
-      //  nome:'José Augusto'
-      //})
+            setUsuarios(oldArray => [...oldArray, data].reverse())
+
+            setLoading(false)
+          })
+        })
 
     }
 
@@ -36,7 +41,7 @@ export default function App() {
   async function cadastrar() {
     if (nome !== '' && cargo !== '') {
       let usuarios = await firebase.database().ref('usuarios')
-      let chave = (await usuarios.push()).key;
+      let chave = await usuarios.push().key;
 
       usuarios.child(chave).set({
         nome: nome,
@@ -76,6 +81,18 @@ export default function App() {
         title='Novo Funcionario'
         onPress={cadastrar}
       />
+
+      <View style={styles.content}>
+        {loading ?
+          (<ActivityIndicator color='#121212' size={45} />) :
+          (<FlatList
+            data={usuarios}
+            keyExtractor={item => item.key}
+            renderItem={({ item }) => <Listagem data={item} />}
+          />)
+        }
+      </View>
+
     </View>
   );
 }
@@ -96,4 +113,9 @@ const styles = StyleSheet.create({
     height: 45,
     fontSize: 17
   },
+  content: {
+    flex: 1,
+    marginTop: 15,
+    justifyContent: 'center'
+  }
 })
