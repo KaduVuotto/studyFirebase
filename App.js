@@ -2,96 +2,65 @@ import React, { Children, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Button, Keyboard, FlatList, ActivityIndicator } from 'react-native';
 import firebase from './src/firebaseConnection';
 
-import Listagem from './src/Listagem';
 
 export default function App() {
-  const [nome, setNome] = useState('')
-  const [cargo, setCargo] = useState('')
-  const [usuarios, setUsuarios] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
-
-  useEffect(() => {
-
-    async function dados() {
-
-      await firebase.database().ref('usuarios').on('value',
-        (snapshot) => {
-          setUsuarios([])
-
-          snapshot.forEach((childItem) => {
-            let data = {
-              key: childItem.key,
-              nome: childItem.val().nome,
-              cargo: childItem.val().cargo,
-            };
-
-            setUsuarios(oldArray => [...oldArray, data].reverse())
-
-            setLoading(false)
-          })
-        })
-
-    }
-
-    dados();
-
-  }, []);
 
   async function cadastrar() {
-    if (nome !== '' && cargo !== '') {
-      let usuarios = await firebase.database().ref('usuarios')
-      let chave = await usuarios.push().key;
-
-      usuarios.child(chave).set({
-        nome: nome,
-        cargo: cargo
+    Keyboard.dismiss();
+    await firebase.auth().createUserWithEmailAndPassword(email, password)
+      .then(value => {
+        alert('Usuario criado: ' + value.user.email);
+        setEmail('')
+        setPassword('')
+        return;
       })
-
-      alert('Cadastrado com sucesso');
-      setCargo('')
-      setNome('')
-      Keyboard.dismiss();
-    }
+      .catch(error => {
+        if (error.code === 'auth/weak-password') {
+          alert('Senha deve ter pelo menos 6 caracteres');
+          return;
+        }
+        if (error.code === 'auth/invalid-email') {
+          alert('Email inválido');
+          return;
+        }
+        else {
+          console.warn(error)
+          alert('Oops, algo deu errado...');
+          return;
+        }
+      })
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.texto}>
-        Nome
+        E-Mail:
       </Text>
       <TextInput
         style={styles.input}
         underlineColorAndroid='transparent'
-        value={nome}
-        onChangeText={(texto) => setNome(texto)}
+        value={email}
+        onChangeText={(texto) => setEmail(texto)}
       />
 
       <Text style={styles.texto}>
-        Cargo
+        Senha:
       </Text>
       <TextInput
         style={styles.input}
-        value={cargo}
+        value={password}
         underlineColorAndroid='transparent'
-        onChangeText={(texto) => setCargo(texto)}
+        onChangeText={(texto) => setPassword(texto)}
       />
 
       <Button
-        title='Novo Funcionario'
+        title='Cadastrar'
         onPress={cadastrar}
       />
 
-      <View style={styles.content}>
-        {loading ?
-          (<ActivityIndicator color='#121212' size={45} />) :
-          (<FlatList
-            data={usuarios}
-            keyExtractor={item => item.key}
-            renderItem={({ item }) => <Listagem data={item} />}
-          />)
-        }
-      </View>
 
     </View>
   );
@@ -111,11 +80,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#121212',
     height: 45,
-    fontSize: 17
+    fontSize: 17,
+    borderRadius: 25,
+    elevation: 5,
+    backgroundColor: 'white'
   },
-  content: {
-    flex: 1,
-    marginTop: 15,
-    justifyContent: 'center'
-  }
 })
