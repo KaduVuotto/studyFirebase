@@ -1,37 +1,36 @@
 import React, { Children, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Keyboard, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Button, Keyboard, FlatList, ActivityIndicator, Alert } from 'react-native';
 import firebase from './src/firebaseConnection';
 
 
 export default function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [user, setUser] = useState('')
 
 
-  async function cadastrar() {
+  async function logar() {
     Keyboard.dismiss();
-    await firebase.auth().createUserWithEmailAndPassword(email, password)
+    await firebase.auth().signInWithEmailAndPassword(email, password)
       .then(value => {
-        alert('Usuario criado: ' + value.user.email);
+        alert('Bem vindo: ' + value.user.email);
         setEmail('')
         setPassword('')
+        setUser(value.user.email)
         return;
       })
       .catch(error => {
-        if (error.code === 'auth/weak-password') {
-          alert('Senha deve ter pelo menos 6 caracteres');
-          return;
-        }
-        if (error.code === 'auth/invalid-email') {
-          alert('Email inválido');
-          return;
-        }
-        else {
-          console.warn(error)
-          alert('Oops, algo deu errado...');
-          return;
-        }
+        console.warn(error)
+        alert('Oops, algo deu errado...');
+        return;
       })
+  }
+  async function logout() {
+    Keyboard.dismiss();
+    await firebase.auth().signOut();
+    setUser('')
+    alert('Deslogado com sucesso!')
+    return;
   }
 
   return (
@@ -57,12 +56,22 @@ export default function App() {
       />
 
       <Button
-        title='Cadastrar'
-        onPress={cadastrar}
+        title='Acessar'
+        onPress={logar}
       />
+      <Text style={{ marginTop: 20, marginBottom: 20, fontSize: 23, textAlign: 'center' }}>
+        {user}
+      </Text>
 
-
-    </View>
+      {user.length > 0 ?
+        <Button
+          title='Sair'
+          onPress={logout}
+        />
+        :
+        <Text style={{ marginTop: 20, marginBottom: 20, fontSize: 23, textAlign: 'center' }}>Nenhum usuário logado</Text>
+      }
+    </View >
   );
 }
 
