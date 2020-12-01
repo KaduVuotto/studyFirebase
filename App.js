@@ -4,6 +4,7 @@ import firebase from './src/firebaseConnection';
 
 
 export default function App() {
+  const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [user, setUser] = useState('')
@@ -33,8 +34,37 @@ export default function App() {
     return;
   }
 
+  async function cadastrar() {
+    Keyboard.dismiss();
+    await firebase.auth().createUserWithEmailAndPassword(email, password)
+      .then(value => {
+        firebase.database().ref('usuarios').child(value.user.uid).set({
+          nome: nome
+        })
+        alert('Usuario criado');
+        setEmail('')
+        setPassword('')
+        setUser(value.user.email)
+        return;
+      })
+      .catch(error => {
+        alert('Oops, algo deu errado...');
+        return;
+      })
+  }
+
   return (
     <View style={styles.container}>
+      <Text style={styles.texto}>
+        Nome:
+      </Text>
+      <TextInput
+        style={styles.input}
+        underlineColorAndroid='transparent'
+        value={nome}
+        onChangeText={(texto) => setNome(texto)}
+      />
+
       <Text style={styles.texto}>
         E-Mail:
       </Text>
@@ -55,22 +85,35 @@ export default function App() {
         onChangeText={(texto) => setPassword(texto)}
       />
 
-      <Button
-        title='Acessar'
-        onPress={logar}
-      />
-      <Text style={{ marginTop: 20, marginBottom: 20, fontSize: 23, textAlign: 'center' }}>
-        {user}
-      </Text>
+      {user.length == 1 ?
+        <Button
+          title='Acessar'
+          onPress={logar}
+        /> : null}
+
+
+      {user.length > 0 ?
+        <Text style={{ marginTop: 20, marginBottom: 20, fontSize: 23, textAlign: 'center' }}>
+          {user}
+        </Text>
+        : null}
+
+      {user.length == 0 ?
+        <View>
+          <Text style={{ marginTop: 20, marginBottom: 20, fontSize: 23, textAlign: 'center' }}> - ou - </Text>
+          <Button
+            title='Cadastrar'
+            onPress={cadastrar}
+          />
+        </View> : null}
+
 
       {user.length > 0 ?
         <Button
           title='Sair'
           onPress={logout}
         />
-        :
-        <Text style={{ marginTop: 20, marginBottom: 20, fontSize: 23, textAlign: 'center' }}>Nenhum usuário logado</Text>
-      }
+        : null}
     </View >
   );
 }
